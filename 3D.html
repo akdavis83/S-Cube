@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Animated Cube - Three.js + Anime.js</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%);
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+        }
+
+        /* Loading Screen */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, #1a1a2e, #16213e, #0f3460);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            transition: all 0.8s cubic-bezier(0.86, 0, 0.07, 1);
+        }
+
+        .loading-cube {
+            width: 60px;
+            height: 60px;
+            position: relative;
+            transform-style: preserve-3d;
+            animation: loadingRotate 2s infinite ease-in-out;
+        }
+
+        @keyframes loadingRotate {
+            0%, 100% { transform: rotateX(0deg) rotateY(0deg); }
+            50% { transform: rotateX(180deg) rotateY(180deg); }
+        }
+
+        .loading-face {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            opacity: 0.8;
+        }
+
+        .loading-text {
+            position: absolute;
+            bottom: 100px;
+            color: white;
+            font-size: 18px;
+            letter-spacing: 3px;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        /* Hero Section */
+        .hero-section {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #canvas-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #three-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .hero-title {
+            position: absolute;
+            top: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 4rem;
+            font-weight: 900;
+            color: white;
+            text-align: center;
+            z-index: 100;
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
+            letter-spacing: -2px;
+            pointer-events: none;
+        }
+
+        .hero-subtitle {
+            position: absolute;
+            top: 130px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 1.2rem;
+            color: rgba(255, 255, 255, 0.8);
+            text-align: center;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        /* Controls */
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 15px 25px;
+            border-radius: 50px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .control-btn {
+            padding: 10px 20px;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            border: none;
+            border-radius: 25px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 10px 25px rgba(255, 107, 107, 0.3);
+        }
+
+        .control-btn:active {
+            transform: translateY(0) scale(0.98);
+        }
+
+        /* Info Panel */
+        .info-panel {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 14px;
+            z-index: 1000;
+            min-width: 200px;
+        }
+
+        .info-item {
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .info-label {
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 1px;
+            opacity: 0.7;
+        }
+
+        .info-value {
+            font-weight: 300;
+            font-size: 16px;
+        }
+
+        /* Scroll Indicator */
+        .scroll-indicator {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            animation: bounce 2s infinite;
+            z-index: 100;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateX(-50%) translateY(0); }
+            40% { transform: translateX(-50%) translateY(-20px); }
+            60% { transform: translateX(-50%) translateY(-10px); }
+        }
+
+        /* Content Sections */
+        .content-section {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 80px 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .section-content {
+            max-width: 800px;
+            text-align: center;
+            z-index: 100;
+            position: relative;
+        }
+
+        .section-title {
+            font-size: 3rem;
+            font-weight: 900;
+            color: white;
+            margin-bottom: 30px;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+
+        .section-text {
+            font-size: 1.2rem;
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.8;
+            margin-bottom: 40px;
+        }
+
+        /* Particle Background */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        /* Feature Cards */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 50px;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+        }
+
+        .feature-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+
+        .feature-description {
+            font-size: 1rem;
+            opacity: 0.8;
+            line-height: 1.6;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 2.5rem;
+            }
+            
+            .hero-subtitle {
+                font-size: 1rem;
+                top: 110px;
+            }
+            
+            .controls {
+                bottom: 20px;
+                padding: 10px 15px;
+                gap: 10px;
+            }
+            
+            .control-btn {
+                padding: 8px 15px;
+                font-size: 12px;
+            }
+            
+            .info-panel {
+                top: 20px;
+                right: 20px;
+                padding: 15px;
+                min-width: 150px;
+            }
+            
+            .section-title {
+                font-size: 2rem;
+            }
+            
+            .section-text {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div class="loading-screen">
+        <div>
+            <div class="loading-cube">
+                <div class="loading-face" style="transform: translateZ(30px);"></div>
+                <div class="loading-face" style="transform: translateZ(-30px) rotateY(180deg);"></div>
+                <div class="loading-face" style="transform: translateX(30px) rotateY(90deg);"></div>
+                <div class="loading-face" style="transform: translateX(-30px) rotateY(-90deg);"></div>
+                <div class="loading-face" style="transform: translateY(30px) rotateX(90deg);"></div>
+                <div class="loading-face" style="transform: translateY(-30px) rotateX(-90deg);"></div>
+            </div>
+            <div class="loading-text">LOADING EXPERIENCE</div>
+        </div>
+    </div>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <h1 class="hero-title">3D CUBE MAGIC</h1>
+        <p class="hero-subtitle">Three.js meets Anime.js in spectacular fashion</p>
+        
+        <div id="canvas-container">
+            <canvas id="three-canvas"></canvas>
+        </div>
+        
+        <div class="scroll-indicator">SCROLL TO EXPLORE ↓</div>
+    </section>
+
+    <!-- Controls -->
+    <div class="controls">
+        <button class="control-btn" id="spinBtn">Spin</button>
+        <button class="control-btn" id="morphBtn">Morph</button>
+        <button class="control-btn" id="explodeBtn">Explode</button>
+        <button class="control-btn" id="rainbowBtn">Rainbow</button>
+        <button class="control-btn" id="resetBtn">Reset</button>
+    </div>
+
+    <!-- Info Panel -->
+    <div class="info-panel">
+        <div class="info-item">
+            <span class="info-label">Rotation</span>
+            <span class="info-value" id="rotationValue">0°</span>
+        </div>
+        <div class="info-item">
+            <span class="info-label">Scale</span>
+            <span class="info-value" id="scaleValue">1.0x</span>
+        </div>
+        <div class="info-item">
+            <span class="info-label">Speed</span>
+            <span class="info-value" id="speedValue">1.0x</span>
+        </div>
+        <div class="info-item">
+            <span class="info-label">Particles</span>
+            <span class="info-value" id="particleCount">0</span>
+        </div>
+    </div>
+
+    <!-- Particles Background -->
+    <div class="particles" id="particles"></div>
+
+    <!-- Content Sections -->
+    <section class="content-section">
+        <div class="section-content">
+            <h2 class="section-title">Infinite Possibilities</h2>
+            <p class="section-text">
+                Experience the perfect fusion of Three.js 3D graphics and Anime.js smooth animations. 
+                Every movement is carefully crafted to create mesmerizing visual experiences that respond to your interactions.
+            </p>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🎨</div>
+                    <h3 class="feature-title">Dynamic Colors</h3>
+                    <p class="feature-description">Watch as colors shift and blend in perfect harmony with the cube's movements.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3 class="feature-title">Lightning Fast</h3>
+                    <p class="feature-description">Optimized animations running at 60fps for buttery smooth visual experiences.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎯</div>
+                    <h3 class="feature-title">Interactive</h3>
+                    <p class="feature-description">Click, scroll, and interact with the cube in multiple exciting ways.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="content-section">
+        <div class="section-content">
+            <h2 class="section-title">Scroll-Triggered Magic</h2>
+            <p class="section-text">
+                As you scroll through this page, watch how the cube responds with elegant animations that follow your journey. 
+                Each scroll reveals new perspectives and magical transformations.
+            </p>
+        </div>
+    </section>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    
+    <script>
+        // Global variables
+        let scene, camera, renderer, cube;
+        let isExploded = false;
+        let currentScale = 1;
+        let particles = [];
+        let animationSpeed = 1;
+        let mouseX = 0, mouseY = 0;
+
+        // Initialize Three.js
+        function initThreeJS() {
+            // Scene setup
+            scene = new THREE.Scene();
+            scene.fog = new THREE.Fog(0x000000, 1, 1000);
+
+            // Camera setup
+            camera = new THREE.PerspectiveCamera(
+                75,
+                window.innerWidth / window.innerHeight,
+                0.1,
+                1000
+            );
+            camera.position.z = 5;
+
+            // Renderer setup
+            renderer = new THREE.WebGLRenderer({ 
+                canvas: document.getElementById('three-canvas'),
+                antialias: true,
+                alpha: true
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setClearColor(0x000000, 0);
+
+            // Create cube with different materials for each face
+            const geometry = new THREE.BoxGeometry(2, 2, 2);
+            const materials = [
+                new THREE.MeshPhongMaterial({ color: 0xff6b6b, emissive: 0xff6b6b, emissiveIntensity: 0.2 }),
+                new THREE.MeshPhongMaterial({ color: 0x4ecdc4, emissive: 0x4ecdc4, emissiveIntensity: 0.2 }),
+                new THREE.MeshPhongMaterial({ color: 0x45b7d1, emissive: 0x45b7d1, emissiveIntensity: 0.2 }),
+                new THREE.MeshPhongMaterial({ color: 0xf9ca24, emissive: 0xf9ca24, emissiveIntensity: 0.2 }),
+                new THREE.MeshPhongMaterial({ color: 0x6c5ce7, emissive: 0x6c5ce7, emissiveIntensity: 0.2 }),
+                new THREE.MeshPhongMaterial({ color: 0xa29bfe, emissive: 0xa29bfe, emissiveIntensity: 0.2 })
+            ];
+
+            cube = new THREE.Mesh(geometry, materials);
+            scene.add(cube);
+
+            // Add lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(5, 5, 5);
+            scene.add(directionalLight);
+
+            const pointLight = new THREE.PointLight(0xff6b6b, 1, 100);
+            pointLight.position.set(-5, 5, 5);
+            scene.add(pointLight);
+
+            // Mouse tracking
+            document.addEventListener('mousemove', (event) => {
+                mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+                mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+            });
+
+            // Window resize
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Mouse interaction
+            if (cube && !isExploded) {
+                cube.rotation.y += (mouseX * 0.05 - cube.rotation.y) * 0.05;
+                cube.rotation.x += (mouseY * 0.05 - cube.rotation.x) * 0.05;
+            }
+
+            // Auto-rotate when not exploded
+            if (cube && !isExploded) {
+                cube.rotation.y += 0.005 * animationSpeed;
+            }
+
+            renderer.render(scene, camera);
+            updateInfo();
+        }
+
+        // Window resize handler
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // Update info panel
+        function updateInfo() {
+            if (cube) {
+                document.getElementById('rotationValue').textContent = 
+                    Math.round(cube.rotation.y * 180 / Math.PI) + '°';
+                document.getElementById('scaleValue').textContent = 
+                    currentScale.toFixed(1) + 'x';
+                document.getElementById('speedValue').textContent = 
+                    animationSpeed.toFixed(1) + 'x';
+            }
+            document.getElementById('particleCount').textContent = particles.length;
+        }
+
+        // Anime.js Animation Functions
+        function spinAnimation() {
+            if (cube) {
+                anime({
+                    targets: cube.rotation,
+                    y: '+=6.28318', // 360 degrees in radians
+                    x: '+=3.14159', // 180 degrees
+                    z: '+=1.5708',  // 90 degrees
+                    duration: 2000 / animationSpeed,
+                    easing: 'easeInOutQuart'
+                });
+            }
+        }
+
+        function morphAnimation() {
+            if (cube) {
+                anime({
+                    targets: cube.scale,
+                    x: [1, 1.5, 0.5, 1],
+                    y: [1, 0.5, 1.5, 1],
+                    z: [1, 1.2, 0.8, 1],
+                    duration: 1500 / animationSpeed,
+                    easing: 'easeInOutElastic(1, .8)',
+                    complete: () => {
+                        anime({
+                            targets: cube.rotation,
+                            x: '+=6.28318',
+                            duration: 1000 / animationSpeed,
+                            easing: 'easeOutBounce'
+                        });
+                    }
+                });
+            }
+        }
+
+        function explodeAnimation() {
+            if (cube) {
+                isExploded = !isExploded;
+                
+                if (isExploded) {
+                    // Create particles
+                    const particleCount = 50;
+                    for (let i = 0; i < particleCount; i++) {
+                        createParticle();
+                    }
+                    
+                    anime({
+                        targets: cube.scale,
+                        x: 0.1,
+                        y: 0.1,
+                        z: 0.1,
+                        duration: 800,
+                        easing: 'easeInElastic(1, .5)',
+                        complete: () => {
+                            anime({
+                                targets: cube.rotation,
+                                x: '+=12.56637', // 720 degrees
+                                duration: 2000,
+                                easing: 'linear',
+                                loop: true
+                            });
+                        }
+                    });
+                } else {
+                    anime({
+                        targets: cube.scale,
+                        x: 1,
+                        y: 1,
+                        z: 1,
+                        duration: 800,
+                        easing: 'easeOutElastic(1, .5)',
+                        complete: () => {
+                            // Clear particles
+                            particles.forEach(p => p.element.remove());
+                            particles = [];
+                        }
+                    });
+                }
+            }
+        }
+
+        function rainbowAnimation() {
+            if (cube) {
+                const colors = [
+                    0xff6b6b, 0x4ecdc4, 0x45b7d1, 0xf9ca24, 
+                    0x6c5ce7, 0xa29bfe, 0xfd79a8, 0xfdcB6e
+                ];
+                
+                cube.material.forEach((material, index) => {
+                    anime({
+                        targets: material.color,
+                        r: colors[index % colors.length] / 255,
+                        g: (colors[index % colors.length] >> 8) / 255,
+                        b: (colors[index % colors.length] >> 16) / 255,
+                        duration: 2000,
+                        easing: 'easeInOutQuad'
+                    });
+                });
+                
+                // Scale animation
+                anime({
+                    targets: cube.scale,
+                    x: 1.5,
+                    y: 1.5,
+                    z: 1.5,
+                    duration: 1000,
+                    easing: 'easeOutQuad',
+                    complete: () => {
+                        anime({
+                            targets: cube.scale,
+                            x: 1,
+                            y: 1,
+                            z: 1,
+                            duration: 1000,
+                            easing: 'easeInQuad'
+                        });
+                    }
+                });
+                
+                // Create rainbow particles
+                for (let i = 0; i < 30; i++) {
+                    setTimeout(() => createParticle(), i * 50);
+                }
+            }
+        }
+
+        function resetAnimation() {
+            if (cube) {
+                isExploded = false;
+                animationSpeed = 1;
+                currentScale = 1;
+                
+                anime({
+                    targets: cube.rotation,
+                    x: 0,
+                    y: 0,
+                    z: 0,
+                    duration: 1500,
+                    easing: 'easeInOutQuart'
+                });
+                
+                anime({
+                    targets: cube.scale,
+                    x: 1,
+                    y: 1,
+                    z: 1,
+                    duration: 1500,
+                    easing: 'easeInOutElastic(1, .8)'
+                });
+                
+                // Reset materials
+                const originalColors = [0xff6b6b, 0x4ecdc4, 0x45b7d1, 0xf9ca24, 0x6c5ce7, 0xa29bfe];
+                cube.material.forEach((material, index) => {
+                    material.color.setHex(originalColors[index]);
+                });
+                
+                // Clear particles
+                particles.forEach(p => p.element.remove());
+                particles = [];
+            }
+        }
+
+        // Particle system
+        function createParticle() {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = Math.random() * window.innerWidth + 'px';
+            particle.style.top = Math.random() * window.innerHeight + 'px';
+            particle.style.background = `hsl(${Math.random() * 360}, 70%, 60%)`;
+            
+            document.getElementById('particles').appendChild(particle);
+            
+            const particleData = {
+                element: particle,
+                x: parseFloat(particle.style.left),
+                y: parseFloat(particle.style.top)
+            };
+            
+            particles.push(particleData);
+            
+            anime({
+                targets: particle,
+                translateX: anime.random(-200, 200),
+                translateY: anime.random(-200, 200),
+                scale: [0, 1.5, 0],
+                opacity: [1, 0],
+                duration: anime.random(1000, 3000),
+                easing: 'easeOutExpo',
+                complete: () => {
+                    particle.remove();
+                    const index = particles.indexOf(particleData);
+                    if (index > -1) particles.splice(index, 1);
+                }
+            });
+        }
+
+        // Scroll animations
+        function setupScrollAnimations() {
+            const observerOptions = {
+                threshold: 0.1,
+                rootMargin: '0px'
+            };
+            
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const target = entry.target;
+                        
+                        // Animate section titles
+                        if (target.classList.contains('section-title')) {
+                            anime({
+                                targets: target,
+                                translateY: [100, 0],
+                                opacity: [0, 1],
+                                duration: 1000,
+                                easing: 'easeOutExpo'
+                            });
+                        }
+                        
+                        // Animate section text
+                        if (target.classList.contains('section-text')) {
+                            anime({
+                                targets: target,
+                                translateY: [50, 0],
+                                opacity: [0, 1],
+                                duration: 800,
+                                delay: 200,
+                                easing: 'easeOutQuad'
+                            });
+                        }
+                        
+                        // Animate feature cards
+                        if (target.classList.contains('feature-card')) {
+                            anime({
+                                targets: target,
+                                translateY: [100, 0],
+                                opacity: [0, 1],
+                                scale: [0.8, 1],
+                                duration: 800,
+                                delay: anime.stagger(100, {start: 200}),
+                                easing: 'easeOutBack'
+                            });
+                        }
+                        
+                        observer.unobserve(target);
+                    }
+                });
+            }, observerOptions);
+            
+            // Observe elements
+            document.querySelectorAll('.section-title, .section-text, .feature-card').forEach(el => {
+                observer.observe(el);
+            });
+            
+            // Parallax scroll effect
+            window.addEventListener('scroll', () => {
+                const scrollY = window.pageYOffset;
+                const scrollPercent = scrollY / (document.body.scrollHeight - window.innerHeight);
+                
+                // Animate cube based on scroll
+                if (cube && !isExploded) {
+                    anime({
+                        targets: cube.rotation,
+                        y: scrollPercent * Math.PI * 4,
+                        duration: 0,
+                        easing: 'linear'
+                    });
+                    
+                    anime({
+                        targets: cube.scale,
+                        x: 1 + scrollPercent * 0.5,
+                        y: 1 + scrollPercent * 0.5,
+                        z: 1 + scrollPercent * 0.5,
+                        duration: 0,
+                        easing: 'linear'
+                    });
+                    
+                    currentScale = 1 + scrollPercent * 0.5;
+                }
+                
+                // Parallax for hero elements
+                const heroTitle = document.querySelector('.hero-title');
+                const heroSubtitle = document.querySelector('.hero-subtitle');
+                
+                if (heroTitle && scrollY < window.innerHeight) {
+                    heroTitle.style.transform = `translateX(-50%) translateY(${scrollY * 0.5}px)`;
+                    heroSubtitle.style.transform = `translateX(-50%) translateY(${scrollY * 0.3}px)`;
+                    heroTitle.style.opacity = 1 - scrollY / window.innerHeight;
+                    heroSubtitle.style.opacity = 1 - scrollY / window.innerHeight;
+                }
+            });
+        }
+
+        // Initialize everything
+        function init() {
+            initThreeJS();
+            animate();
+            setupScrollAnimations();
+            
+            // Button event listeners
+            document.getElementById('spinBtn').addEventListener('click', spinAnimation);
+            document.getElementById('morphBtn').addEventListener('click', morphAnimation);
+            document.getElementById('explodeBtn').addEventListener('click', explodeAnimation);
+            document.getElementById('rainbowBtn').addEventListener('click', rainbowAnimation);
+            document.getElementById('resetBtn').addEventListener('click', resetAnimation);
+            
+            // Hide loading screen with anime
+            setTimeout(() => {
+                anime({
+                    targets: '.loading-screen',
+                    opacity: [1, 0],
+                    translateY: [0, -50],
+                    duration: 1000,
+                    easing: 'easeInOutQuart',
+                    complete: () => {
+                        document.querySelector('.loading-screen').style.display = 'none';
+                        
+                        // Initial hero animations
+                        anime({
+                            targets: '.hero-title',
+                            translateY: [100, 0],
+                            opacity: [0, 1],
+                            duration: 1200,
+                            easing: 'easeOutExpo'
+                        });
+                        
+                        anime({
+                            targets: '.hero-subtitle',
+                            translateY: [50, 0],
+                            opacity: [0, 1],
+                            duration: 800,
+                            delay: 400,
+                            easing: 'easeOutQuad'
+                        });
+                        
+                        anime({
+                            targets: '.controls',
+                            translateY: [100, 0],
+                            opacity: [0, 1],
+                            duration: 800,
+                            delay: 600,
+                            easing: 'easeOutBack'
+                        });
+                        
+                        anime({
+                            targets: '.info-panel',
+                            translateX: [100, 0],
+                            opacity: [0, 1],
+                            duration: 800,
+                            delay: 800,
+                            easing: 'easeOutQuad'
+                        });
+                        
+                        anime({
+                            targets: '.scroll-indicator',
+                            translateY: [50, 0],
+                            opacity: [0, 1],
+                            duration: 600,
+                            delay: 1000,
+                            easing: 'easeOutBounce'
+                        });
+                    }
+                });
+            }, 2000);
+        }
+
+        // Start the experience
+        init();
+    </script>
+</body>
+</html>
